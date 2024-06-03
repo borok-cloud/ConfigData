@@ -1,0 +1,55 @@
+#Python Code to copy search and copy each file
+
+import csv
+from datetime import datetime
+
+def find_first_occurrence_of_earliest_date(file_path, date_format='%Y-%m-%d', date_column_index=0):
+    earliest_date = None
+    earliest_line = None
+
+    with open(file_path, 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        header = next(reader)  # Assuming the first line is the header
+        for line in reader:
+            date_str = line[date_column_index]
+            try:
+                current_date = datetime.strptime(date_str, date_format)
+            except ValueError:
+                continue  # Skip lines with invalid date format
+
+            if earliest_date is None or current_date < earliest_date:
+                earliest_date = current_date
+                earliest_line = line
+
+    return earliest_line
+
+# Example usage
+file_path = 'your_file.csv'
+date_format = '%Y-%m-%d'  # Change this according to your date format
+date_column_index = 0  # Change this to the correct index of your date column
+earliest_line = find_first_occurrence_of_earliest_date(file_path, date_format, date_column_index)
+
+if earliest_line:
+    print("First occurrence of line with the earliest date:")
+    print(earliest_line)
+else:
+    print("No valid date found in the file.")
+
+
+"""
+'your_file.csv'
+
+date,name,amount
+2023-01-10,John,100
+2022-05-21,Jane,200
+2022-05-20,Bob,150
+2023-02-15,Alice,120
+----------------------
+Result
+First occurrence of line with the earliest date:
+['2022-05-20', 'Bob', '150']
+
+
+
+
+"""
