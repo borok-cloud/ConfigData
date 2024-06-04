@@ -1,0 +1,82 @@
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+public class FindEarliestDate {
+
+    private static final String DELIMITER = "|";
+    private static final String DATE_FORMAT = "yyyy-MM-dd"; // Adjust date format if needed
+
+    public static void main(String[] args) throws IOException, ParseException {
+        // File paths (replace with your actual file paths)
+        List<String> filePaths = List.of("file1.txt", "file2.txt", "file3.txt", "file4.txt", "file5.txt", "file6.txt");
+        String resultFile = "results.txt";
+
+        // Executor for concurrent processing
+        ExecutorService executor = Executors.newFixedThreadPool(6);
+
+        // List to store results from each file
+        List<CompletableFuture<String>> futures = new ArrayList<>();
+
+        // Process each file concurrently
+        for (String filePath : filePaths) {
+            futures.add(CompletableFuture.supplyAsync(() -> processFile(filePath)));
+        }
+
+        // Combine results and write to file
+        List<String> allResults = new ArrayList<>();
+        for (CompletableFuture<String> future : futures) {
+            allResults.add(future.get()); // Wait for each future to complete and get result
+        }
+
+        writeToFile(resultFile, allResults);
+
+        // Shutdown executor
+        executor.shutdown();
+    }
+
+    private static String processFile(String filePath) throws IOException, ParseException {
+        String earliestLine = null;
+        Date earliestDate = null;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] fields = line.split(DELIMITER);
+                // Find field containing the text to search (adjust index if needed)
+                int textIndex = 1; // Adjust based on your text field position
+                if (fields.length > textIndex && fields[textIndex].contains("your_text_here")) {
+                    // Extract date (adjust index if needed)
+                    int dateIndex = 0; 
+                    if (fields.length > dateIndex) {
+                        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
+                        Date currentDate = sdf.parse(fields[dateIndex]);
+                        if (earliestDate == null || currentDate.before(earliestDate)) {
+                            earliestDate = currentDate;
+                            earliestLine = line;
+                        }
+                    }
+                }
+            }
+        }
+        return filePath + ":" + earliestLine; // Combine filename and line with earliest date
+    }
+
+    private static void writeToFile(String fileName, List<String> content) throws IOException {
+        try (FileWriter writer = new FileWriter(fileName)) {
+            for (String line : content) {
+                writer.write(line + "\n");
+            }
+        }
+    }
+}
